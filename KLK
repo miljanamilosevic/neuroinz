@@ -1,0 +1,84 @@
+load('signal3.mat');
+handles.Fs = data.Fs;
+handles.signal = data.signal;
+
+signal1 = handles.signal;
+Fs = handles.Fs;
+%t = (0:N-1)/Fs; jovana
+t = 0:1/Fs:(length(signal1)-1)/Fs;
+x = sin(2*pi*40*t);
+y = sin(2*pi*30*t);
+signal2 = signal1 + x + y
+
+%prvi korak je uvek amplitudski spektar i da se trazi i da se ne trazi
+N = length(signal2);
+F = fft(signal2, N);
+f_osa = 0:Fs/N:(Fs-Fs/N);
+f_osa_pola = f_osa(1:end/2);
+F_pola = F(1:end/2);
+axes(handles.axes1);
+plot(f_osa_pola, abs(F_pola))
+xlabel('Frekvencija [hz]')
+ylabel('Amplitudski spektar signala')
+
+%izgleda? prvi filter-notch
+rz = 1; %nula na jedinici kruznice, najjaci uticaj
+teta_z1 = 5*pi*2 / Fs; %frekv od 5 i 30hz ce se potisnuti zbog ovih nula
+teta_z2 = 30*pi*2 / Fs;
+rp = 0.99; %skoro 1 tj unutar kruznice su sto znaci da je filtar stabilan
+teta_p = 10*2*pi / Fs; %ugao za jedan par polova, omogucava prolaz na 10hz
+
+b1 = [1 -2*rz*cos(teta_z1) rz^2];
+b2 = [1 -2*rz*cos(teta_z2) rz^2];
+b = conv(b1,b2);
+
+a = [1 -2*rp*cos(teta_p) rp^2];
+
+%drugi filter?-notch
+rz2 = 1; %nula na jedinici kruznice, najjaci uticaj
+teta_z2a = 30*2*pi / Fs; %potisnuce se 30hz
+rp2 = 0.99; %pol, stabilan, unutar kruznice
+teta_p2 = 40*2*pi / Fs; %omogucava prolaz drugim frekvencijama
+
+b2 = [1 -2*rz2*cos(teta_z2a) rz2^2];
+a2 = [1 -2*rp2*cos(teta_p2) rp2^2];
+
+%Ampl. krk filtra
+[H, w] = freqz(b2,a2);
+w = (w * Fs)/(2*pi); %ovo je u rad, a na hz prelazimo tako sto prvo pomnozimo sa fs - rad/s, i onda podelimo sa 2pi da bismo dobili hz
+axes(handles.axes4)
+plot(w, abs(20*log10(H)));
+xlabel('Frekvencija [Hz]')
+ylabel('Pojacanje')
+title('Amplitudska karakteristika filtra u [dB]')
+
+%polozaj polova i nula
+axes(handles.axes3);
+zplane(b2,a2); %?
+
+signalfilter1 = filter(b,a,signal2);
+signalfilter2 = filter(b2,a2,signal2);
+signalfilter =  signalfilter1 + signalfilter2 ;
+signalfilterfft = fft(signalfilter, N);
+f = (0:(N/2))*(Fs/N); %?na vezbama je w
+axes(handles.axes2)
+plot(f, abs(signalfilterfft(1:N/2+1)));
+
+
+handles.signalfilter = signalfilter
+
+%????
+[H, w] = freqz(b,a);
+w = 2*pi*w / Fs
+axes(handles.axes5);
+plot(w, H);
+
+guidata(hObject, handles);
+
+
+ime = get(handles.editSave, 'String');
+signalfilter = handles.signalfilter;
+Fs = handles.Fs;
+data = struct('Fs', Fs, 'SF', signalfilter);
+save(ime, 'data');
+msgbox('Saved!');
