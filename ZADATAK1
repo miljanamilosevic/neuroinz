@@ -1,0 +1,55 @@
+%ovako nesto ce biti na laboratorijskom kolokvijumu 
+
+load('signal3.mat')
+signal = data.signal;
+Fs = data.Fs;
+t = 0:1/Fs:(length(signal)-1)/Fs; 
+signal1 = signal + sin(2*pi*40*t);
+
+plot(t, signal1)
+
+N = 1024;
+F = fft(signal1, N);
+f_osa = 0:Fs/N:(Fs-Fs/N);
+f_osa_pola = f_osa(1:end/2);
+F = F(1:end/2);
+plot(f_osa_pola, abs(F))
+xlabel('frekvencija [hz]')
+ylabel('amplitudski spektar signala') %prvi korak uvek!!
+
+rp = 0.9; %max poluprecnik 
+teta_p = 40*pi*2/Fs; %tacno na 40hz - pomocu proporcije
+rz = 1;
+teta_z = 0;
+b = [1 -2*rz*cos(teta_z) rz^2];
+a = [1 -2*rp*cos(teta_p) rp^2];
+
+figure;
+zplane(b,a) %raspored nula i polova u z ravni
+
+figure;
+[H, w] = freqz(b,a,512);
+w = (w*Fs)/(2*pi);%ovo je u rad, a na hz prelazimo tako sto prvo pomnozimo sa fs - rad/s, i onda podelimo sa 2pi da bismo dobili hz
+plot(w, abs(H))
+xlabel('Frekvencija [Hz]')
+ylabel('Pojacanje')
+title('Amplitudska karakteristika')
+
+figure;
+plot(w, 20*log10(abs(H)));
+xlabel('Frekvencija [Hz]')
+ylabel('Pojacanje')
+title('Amplitudska karakteristika')
+
+signal_filt = filter(b,a,signal1);
+
+spektar_orig = fft(signal1, N);
+spektar_filt = fft(signal_filt, N);
+figure;
+plot(w, abs(spektar_orig(1:512)));
+xlabel('Frekvencija [Hz]')
+ylabel('Amplituda')
+figure;
+plot(w,abs(spektar_filt(1:512)), 'r');
+xlabel('Frekvencija [Hz]')
+ylabel('Amplituda')
